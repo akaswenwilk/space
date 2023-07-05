@@ -11,7 +11,9 @@ import (
 var charRegex = regexp.MustCompile(`[a-zA-Z0-9-_]{1}`)
 
 type Model struct {
-	Text []string
+	Text   []string
+	Repo   string
+	Branch string
 }
 
 func New() Model {
@@ -47,7 +49,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// submit text
 		case messageString == "enter":
-			// TODO: handle enter
+			if m.Repo == "" {
+				m.Repo = strings.Join(m.Text, "")
+			} else {
+				m.Branch = strings.Join(m.Text, "")
+			}
+			m.Text = []string{}
+			// TODO: trigger space creation
 
 		case len(messageString) == 1:
 			m.Text = append(m.Text, messageString)
@@ -61,5 +69,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	// Send the UI for rendering
-	return fmt.Sprintf("Repo Name: %s", strings.Join(m.Text, ""))
+	switch {
+	case m.Repo == "":
+		return fmt.Sprintf("Repo: %s", strings.Join(m.Text, ""))
+	case m.Branch == "":
+		return fmt.Sprintf("Branch: %s", strings.Join(m.Text, ""))
+	default:
+		return fmt.Sprintf("Selected Repo: %s\n\nSelected Branch: %s", m.Repo, m.Branch)
+	}
 }
