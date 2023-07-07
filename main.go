@@ -23,7 +23,8 @@ func main() {
 	}
 	defer f.Close()
 
-	conf := configuration.New()
+	conf, err := configuration.New()
+	failOnError(err)
 
 	switch args[1] {
 	case "new":

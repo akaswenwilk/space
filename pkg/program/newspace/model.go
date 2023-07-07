@@ -94,6 +94,14 @@ func (m *Model) View() string {
 	case m.RepoSelected:
 		return fmt.Sprintf("Branch (leave blank for default branch): %s", strings.Join(m.Text, ""))
 	default:
-		return fmt.Sprintf("Repo: %s", strings.Join(m.Text, ""))
+		return fmt.Sprintf("Repo: %s\n\n%s", strings.Join(m.Text, ""), m.PossibleRepos())
 	}
+}
+
+func (m *Model) PossibleRepos() string {
+	str := ""
+	for _, r := range m.Conf.Spaces {
+		str += fmt.Sprintf("[ ] %s\n", r)
+	}
+	return str
 }
