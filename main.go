@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"os"
 
+	"github.com/akaswenwilk/space/pkg/configuration"
 	"github.com/akaswenwilk/space/pkg/program"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
@@ -14,12 +17,26 @@ func main() {
 		log.Fatalf("please enter the program name: e.g. space new")
 	}
 
+	f, err := tea.LogToFile("log/log.txt", "")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	conf := configuration.New()
+
 	switch args[1] {
 	case "new":
-		program.New()
+		program.New(conf)
 	case "purge":
-		program.Purge()
+		program.Purge(conf)
 	default:
-		log.Fatalf("available programs are purge and new")
+		failOnError(errors.New("available programs are purge and new"))
+	}
+}
+
+func failOnError(err error) {
+	if err != nil {
+		log.Fatalf(err.Error())
 	}
 }
