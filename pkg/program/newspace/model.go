@@ -11,27 +11,26 @@ import (
 )
 
 type Model struct {
-	Conf           configuration.Conf
+	Conf           *configuration.Conf
 	Text           []string
 	Repo           string
 	RepoSelected   bool
 	Branch         string
 	BranchSelected bool
 	Err            error
-	Success        bool
-	Space          string
+	FinalSpace     string
 }
 
-func Start(conf configuration.Conf) Model {
-	return Model{Conf: conf}
+func Start(conf *configuration.Conf) *Model {
+	return &Model{Conf: conf}
 }
 
-func (m Model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	// Is it a key press?
 	case tea.KeyMsg:
@@ -70,8 +69,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.Err = fmt.Errorf("error cloning: %w", err)
 					return m, nil
 				}
-				m.Space = space
-				m.Success = true
+				m.FinalSpace = space
 			}
 
 		case len(messageString) == 1:
@@ -79,21 +77,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if m.Err != nil || m.FinalSpace != "" {
+		return m, tea.Quit
+	}
+
 	// Return the updated model to the Bubble Tea runtime for processing.
 	// Note that we're not returning a command.
 	return m, nil
 }
 
-func (m Model) View() string {
-	if m.Success {
-		return fmt.Sprintf("cd %s", m.Space)
-	}
+func (m *Model) View() string {
 	// Send the UI for rendering
 	switch {
 	case m.Err != nil:
 		return m.Err.Error()
-	case m.RepoSelected && m.BranchSelected:
-		return fmt.Sprintf("Selected Repo: %s\n\nSelected Branch: %s", m.Repo, m.Branch)
 	case m.RepoSelected:
 		return fmt.Sprintf("Branch (leave blank for default branch): %s", strings.Join(m.Text, ""))
 	default:
