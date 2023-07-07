@@ -3,11 +3,13 @@ package newspace
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/akaswenwilk/space/pkg/configuration"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/go-git/go-git/v5"
+	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
 type Model struct {
@@ -19,6 +21,7 @@ type Model struct {
 	BranchSelected bool
 	Err            error
 	FinalSpace     string
+	SelectedRepo   int
 }
 
 func Start(conf *configuration.Conf) *Model {
@@ -50,6 +53,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case messageString == "backspace":
 			if len(m.Text) > 0 {
 				m.Text = m.Text[:len(m.Text)-1]
+				m.SelectedRepo = 0
+			}
+
+		case messageString == "down" || messageString == "tab":
+			m.SelectedRepo += 1
+			if m.SelectedRepo > len(m.Repos()) {
+				m.SelectedRepo = 1
+			}
+
+		case messageString == "up":
+			m.SelectedRepo -= 1
+			if m.SelectedRepo < 1 {
+				m.SelectedRepo = len(m.Repos())
 			}
 
 		// submit text
@@ -58,7 +74,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Branch = strings.Join(m.Text, "")
 				m.BranchSelected = true
 			} else {
-				m.Repo = strings.Join(m.Text, "")
+				if m.SelectedRepo == 0 {
+					m.Repo = strings.Join(m.Text, "")
+				} else {
+					m.Repo = m.Repos()[m.SelectedRepo-1]
+				}
 				m.RepoSelected = true
 			}
 
@@ -67,13 +87,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				space, err := m.Clone()
 				if err != nil && !errors.Is(err, git.ErrRepositoryAlreadyExists) {
 					m.Err = fmt.Errorf("error cloning: %w", err)
-					return m, nil
 				}
 				m.FinalSpace = space
 			}
 
 		case len(messageString) == 1:
 			m.Text = append(m.Text, messageString)
+			m.SelectedRepo = 0
 		}
 	}
 
@@ -89,19 +109,50 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) View() string {
 	// Send the UI for rendering
 	switch {
-	case m.Err != nil:
-		return m.Err.Error()
-	case m.RepoSelected:
-		return fmt.Sprintf("Branch (leave blank for default branch): %s", strings.Join(m.Text, ""))
-	default:
+	case !m.RepoSelected:
 		return fmt.Sprintf("Repo: %s\n\n%s", strings.Join(m.Text, ""), m.PossibleRepos())
+	case m.RepoSelected:
+		return fmt.Sprintf("Repo: %s\nBranch (leave blank for default branch): %s", m.Repo, strings.Join(m.Text, ""))
+	default:
+		return ""
 	}
 }
 
 func (m *Model) PossibleRepos() string {
 	str := ""
-	for _, r := range m.Conf.Spaces {
-		str += fmt.Sprintf("[ ] %s\n", r)
+	for i, r := range m.Repos() {
+		marker := " "
+		if i == m.SelectedRepo-1 {
+			marker = "x"
+		}
+		str += fmt.Sprintf("[%s] %s\n", marker, r)
 	}
 	return str
+}
+
+func (m *Model) Repos() []string {
+	entry := strings.Join(m.Text, "")
+	if entry == "" {
+		if len(m.Conf.Spaces) > 10 {
+			return m.Conf.Spaces[:10]
+		}
+
+		return m.Conf.Spaces
+	}
+
+	matches := fuzzy.RankFindFold(entry, m.Conf.Spaces)
+
+	sort.Sort(matches)
+
+	var result []string
+
+	for i, m := range matches {
+		if i > 10 {
+			break
+		}
+
+		result = append(result, m.Target)
+	}
+
+	return result
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/akaswenwilk/space/pkg/configuration"
 	"github.com/akaswenwilk/space/pkg/program"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
@@ -16,12 +15,6 @@ func main() {
 	if len(args) < 2 {
 		log.Fatalf("please enter the program name: e.g. space new")
 	}
-
-	f, err := tea.LogToFile("log/log.txt", "")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
 
 	conf, err := configuration.New()
 	failOnError(err)

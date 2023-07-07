@@ -60,17 +60,19 @@ func (m Model) checkoutBranch(rep *git.Repository, branch string) error {
 		return fmt.Errorf("error generating worktree: %w", err)
 	}
 	return wt.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(branch),
+		Branch: plumbing.NewBranchReferenceName(branch),
+		Create: true,
 	})
 }
 
 func (m Model) tryCloneDefaultBranch(spacename string) (rep *git.Repository, err error) {
-	rep, err = m.tryClone(spacename, main)
-	if err != nil {
-		rep, err = m.tryClone(spacename, master)
-	}
-
-	return
+	return git.PlainClone(spacename, false, &git.CloneOptions{
+		URL: m.Repo,
+		Auth: &http.BasicAuth{
+			Username: m.Conf.GithubUsername,
+			Password: m.Conf.GithubToken,
+		},
+	})
 }
 
 func (m Model) tryClone(spaceName, branch string) (*git.Repository, error) {
@@ -84,16 +86,11 @@ func (m Model) tryClone(spaceName, branch string) (*git.Repository, error) {
 	})
 }
 
-func (m Model) existingSpace() bool {
-	// TODO: implement logic to determine if space exists
-	return false
-}
-
 func (m Model) prepareSpace(branch string) (string, error) {
 	parts := strings.Split(m.Repo, "/")
 	repoName := parts[len(parts)-1]
 	repoName = strings.Replace(repoName, ".git", "", 1)
 	ownerName := parts[len(parts)-2]
 
-	return fmt.Sprintf("%s/%s/%s/%s", m.Conf.SpacesDirectory, ownerName, repoName, branch), nil
+	return fmt.Sprintf("%s/%s/%s-%s", m.Conf.SpacesDirectory, ownerName, repoName, branch), nil
 }
