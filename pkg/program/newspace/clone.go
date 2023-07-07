@@ -6,15 +6,11 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
-const (
-	main   = "main"
-	master = "master"
-)
+const main = "main"
 
 var ErrSpaceExists = errors.New("space already exists")
 
@@ -48,13 +44,6 @@ func (m Model) Clone() (string, error) {
 }
 
 func (m Model) checkoutBranch(rep *git.Repository, branch string) error {
-	err := rep.CreateBranch(&config.Branch{
-		Name: branch,
-	})
-	if err != nil {
-		return fmt.Errorf("error creating branch: %w", err)
-	}
-
 	wt, err := rep.Worktree()
 	if err != nil {
 		return fmt.Errorf("error generating worktree: %w", err)
