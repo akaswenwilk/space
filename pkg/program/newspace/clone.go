@@ -81,5 +81,7 @@ func (m Model) prepareSpace(branch string) (string, error) {
 	repoName = strings.Replace(repoName, ".git", "", 1)
 	ownerName := parts[len(parts)-2]
 
-	return fmt.Sprintf("%s/%s/%s-%s", m.Conf.SpacesDirectory, ownerName, repoName, branch), nil
+	cleanedBranch := strings.ReplaceAll(branch, "/", "-")
+
+	return fmt.Sprintf("%s/%s/%s-%s", m.Conf.SpacesDirectory, ownerName, repoName, cleanedBranch), nil
 }
